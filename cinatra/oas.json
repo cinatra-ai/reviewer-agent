@@ -1,0 +1,316 @@
+{
+  "agentspec_version": "26.1.0",
+  "component_type": "Flow",
+  "id": "email-reviewer-flow",
+  "name": "Reviewer Agent",
+  "description": "Reviews generated email drafts for quality, tone, and accuracy before they are approved for sending.",
+  "metadata": {
+    "cinatra": {
+      "type": "node",
+      "packageName": "@cinatra-ai/reviewer-agent",
+      "packageVersion": "0.1.4"
+    }
+  },
+  "inputs": [
+    {
+      "title": "agent_run_id",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "title": "draftBundleRef",
+      "type": "string",
+      "json_schema": {
+        "format": "uuid"
+      }
+    },
+    {
+      "title": "followupBundleRef",
+      "type": "string",
+      "json_schema": {
+        "format": "uuid"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "title": "approvedDraftBundleRef",
+      "type": "string",
+      "json_schema": {
+        "format": "uuid"
+      }
+    },
+    {
+      "title": "approvedFollowupBundleRef",
+      "type": "string",
+      "json_schema": {
+        "format": "uuid"
+      }
+    }
+  ],
+  "start_node": {
+    "$component_ref": "start"
+  },
+  "nodes": [
+    {
+      "$component_ref": "start"
+    },
+    {
+      "$component_ref": "review"
+    },
+    {
+      "$component_ref": "approval_gate"
+    },
+    {
+      "$component_ref": "end"
+    }
+  ],
+  "control_flow_connections": [
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "start_to_review",
+      "from_node": {
+        "$component_ref": "start"
+      },
+      "to_node": {
+        "$component_ref": "review"
+      }
+    },
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "review_to_approval_gate",
+      "from_node": {
+        "$component_ref": "review"
+      },
+      "to_node": {
+        "$component_ref": "approval_gate"
+      }
+    },
+    {
+      "component_type": "ControlFlowEdge",
+      "name": "approval_gate_to_end",
+      "from_node": {
+        "$component_ref": "approval_gate"
+      },
+      "to_node": {
+        "$component_ref": "end"
+      }
+    }
+  ],
+  "data_flow_connections": [
+    {
+      "component_type": "DataFlowEdge",
+      "name": "start_to_review_agent_run_id",
+      "source_node": {
+        "$component_ref": "start"
+      },
+      "source_output": "agent_run_id",
+      "destination_node": {
+        "$component_ref": "review"
+      },
+      "destination_input": "agent_run_id"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "start_to_review_draftBundleRef",
+      "source_node": {
+        "$component_ref": "start"
+      },
+      "source_output": "draftBundleRef",
+      "destination_node": {
+        "$component_ref": "review"
+      },
+      "destination_input": "draftBundleRef"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "start_to_review_followupBundleRef",
+      "source_node": {
+        "$component_ref": "start"
+      },
+      "source_output": "followupBundleRef",
+      "destination_node": {
+        "$component_ref": "review"
+      },
+      "destination_input": "followupBundleRef"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "review_to_end_approvedDraftBundleRef",
+      "source_node": {
+        "$component_ref": "review"
+      },
+      "source_output": "approvedDraftBundleRef",
+      "destination_node": {
+        "$component_ref": "end"
+      },
+      "destination_input": "approvedDraftBundleRef"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "review_to_end_approvedFollowupBundleRef",
+      "source_node": {
+        "$component_ref": "review"
+      },
+      "source_output": "approvedFollowupBundleRef",
+      "destination_node": {
+        "$component_ref": "end"
+      },
+      "destination_input": "approvedFollowupBundleRef"
+    },
+    {
+      "component_type": "DataFlowEdge",
+      "name": "approval_gate_to_end_userResponse",
+      "source_node": {
+        "$component_ref": "approval_gate"
+      },
+      "source_output": "userResponse",
+      "destination_node": {
+        "$component_ref": "end"
+      },
+      "destination_input": "userResponse"
+    }
+  ],
+  "$referenced_components": {
+    "start": {
+      "component_type": "StartNode",
+      "id": "start",
+      "name": "Inputs",
+      "metadata": {
+        "cinatra": {
+          "required": [],
+          "hidden": [
+            "agent_run_id",
+            "draftBundleRef",
+            "followupBundleRef"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "title": "agent_run_id",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "title": "draftBundleRef",
+          "type": "string",
+          "json_schema": {
+            "format": "uuid"
+          }
+        },
+        {
+          "title": "followupBundleRef",
+          "type": "string",
+          "json_schema": {
+            "format": "uuid"
+          }
+        }
+      ]
+    },
+    "review": {
+      "component_type": "ApiNode",
+      "id": "review",
+      "name": "Review email drafts",
+      "url": "{{CINATRA_BASE_URL}}/api/llm-bridge",
+      "http_method": "POST",
+      "data": {
+        "system": "You are an email quality review agent for outreach campaigns. Fetch the draft bundle via objects_get(draftBundleRef) and the follow-up bundle via objects_get(followupBundleRef). Run the built-in review workflow, apply critical improvements, dismiss low-severity suggestions that conflict with campaign tone, save the approved versions as cinatra objects using objects_save, and return a JSON object: {\"approvedDraftBundleRef\":\"<objectId of approved draft bundle>\",\"approvedFollowupBundleRef\":\"<objectId of approved followup bundle>\",\"summary\":\"<concise status report>\"}.",
+        "user": "Execute the email review task now and return the result as JSON.\nInputs:\n- draftBundleRef: {{ draftBundleRef }}\n- followupBundleRef: {{ followupBundleRef }}",
+        "agent_id": "email-reviewer",
+        "agent_run_id": "{{ agent_run_id }}",
+        "cinatra_llm": {
+          "preferredProvider": "openai",
+          "preferredModel": "gpt-5.5"
+        }
+      },
+      "inputs": [
+        {
+          "title": "agent_run_id",
+          "type": "string",
+          "default": ""
+        },
+        {
+          "title": "draftBundleRef",
+          "type": "string",
+          "json_schema": {
+            "format": "uuid"
+          }
+        },
+        {
+          "title": "followupBundleRef",
+          "type": "string",
+          "json_schema": {
+            "format": "uuid"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "title": "approvedDraftBundleRef",
+          "type": "string",
+          "json_schema": {
+            "format": "uuid"
+          }
+        },
+        {
+          "title": "approvedFollowupBundleRef",
+          "type": "string",
+          "json_schema": {
+            "format": "uuid"
+          }
+        }
+      ],
+      "metadata": {
+        "cinatra": {
+          "riskClass": "read_only",
+          "requiresApproval": false
+        }
+      }
+    },
+    "end": {
+      "component_type": "EndNode",
+      "id": "end",
+      "name": "End",
+      "outputs": [
+        {
+          "title": "approvedDraftBundleRef",
+          "type": "string",
+          "json_schema": {
+            "format": "uuid"
+          }
+        },
+        {
+          "title": "approvedFollowupBundleRef",
+          "type": "string",
+          "json_schema": {
+            "format": "uuid"
+          }
+        },
+        {
+          "title": "userResponse",
+          "type": "string"
+        }
+      ]
+    },
+    "approval_gate": {
+      "component_type": "InputMessageNode",
+      "id": "approval_gate",
+      "name": "Approval gate",
+      "metadata": {
+        "cinatra": {
+          "riskClass": "approval",
+          "requiresApproval": true,
+          "renderer": "@cinatra-ai/reviewer-agent:output",
+          "a2uiSurfaceId": "reviewer:approval-gate:input"
+        }
+      },
+      "outputs": [
+        {
+          "title": "userResponse",
+          "type": "string"
+        }
+      ]
+    }
+  }
+}
