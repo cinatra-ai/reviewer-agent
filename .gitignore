@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output (tsconfig outDir)
+dist/
+
+# Standalone extension repos ship no committed lockfile (see ci.yml)
+pnpm-lock.yaml
+
+# npm pack output
+*.tgz
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
