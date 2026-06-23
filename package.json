@@ -1,6 +1,6 @@
 {
   "name": "@cinatra-ai/reviewer-agent",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "Apache-2.0",
   "description": "Generic content reviewer — receives a content bundle, LLM-advises the frontend on which renderer to use, then waits for human approval.",
   "type": "module",
